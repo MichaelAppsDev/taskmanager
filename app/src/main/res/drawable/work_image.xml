@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="120dp"
+    android:viewportWidth="200"
+    android:viewportHeight="120">
+    <path
+        android:fillColor="#455A64"
+        android:pathData="M0,0h200v120h-200z"/>
+    
+    <!-- Office building -->
+    <path
+        android:fillColor="#607D8B"
+        android:pathData="M40,20h120v80h-120z"/>
+    
+    <!-- Windows pattern -->
+    <path
+        android:fillColor="#90A4AE"
+        android:pathData="M50,30h20v15h-20z"/>
+    
+    <path
+        android:fillColor="#90A4AE"
+        android:pathData="M80,30h20v15h-20z"/>
+    
+    <path
+        android:fillColor="#90A4AE"
+        android:pathData="M110,30h20v15h-20z"/>
+    
+    <path
+        android:fillColor="#90A4AE"
+        android:pathData="M140,30h10v15h-10z"/>
+    
+    <path
+        android:fillColor="#90A4AE"
+        android:pathData="M50,55h20v15h-20z"/>
+    
+    <path
+        android:fillColor="#90A4AE"
+        android:pathData="M80,55h20v15h-20z"/>
+    
+    <path
+        android:fillColor="#90A4AE"
+        android:pathData="M110,55h20v15h-20z"/>
+    
+    <path
+        android:fillColor="#90A4AE"
+        android:pathData="M140,55h10v15h-10z"/>
+    
+    <!-- Door -->
+    <path
+        android:fillColor="#263238"
+        android:pathData="M90,80h20v20h-20z"/>
+</vector> 
