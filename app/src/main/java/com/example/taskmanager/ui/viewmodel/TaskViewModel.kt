@@ -12,6 +12,7 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
 class TaskViewModel(application: Application) : AndroidViewModel(application) {
@@ -25,25 +26,57 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(TaskUiState())
     val uiState: StateFlow<TaskUiState> = _uiState.asStateFlow()
     
+    // Track if we've already started loading data
+    private var isDataLoaded = false
+    
     init {
-        loadUserData()
+        // Wait for auth to be ready before loading data
+        FirebaseAuth.getInstance().addAuthStateListener { auth ->
+            if (auth.currentUser != null && !isDataLoaded) {
+                loadUserData()
+                isDataLoaded = true
+            }
+        }
     }
     
     private fun loadUserData() {
-        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        viewModelScope.launch {
-            // Load collections
-            val collections = repository.getAllCollections(userId)
-            _uiState.value = _uiState.value.copy(collections = collections)
+        try {
+            val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
             
-            // Load tasks
-            val tasks = repository.getAllTasksFlow(userId).collect { tasks ->
-                _uiState.value = _uiState.value.copy(tasks = tasks)
+            // Load collections
+            viewModelScope.launch {
+                try {
+                    val collections = repository.getAllCollections(userId)
+                    _uiState.value = _uiState.value.copy(collections = collections)
+                } catch (e: Exception) {
+                    // Handle error silently
+                }
             }
             
-            // Load reminders
-            val reminders = repository.getAllReminders(userId)
-            _uiState.value = _uiState.value.copy(reminders = reminders)
+            // Load tasks in a separate coroutine
+            viewModelScope.launch {
+                try {
+                    repository.getAllTasksFlow(userId)
+                        .catch { /* Handle error silently */ }
+                        .collect { tasks ->
+                            _uiState.value = _uiState.value.copy(tasks = tasks)
+                        }
+                } catch (e: Exception) {
+                    // Handle error silently
+                }
+            }
+            
+            // Load reminders in a separate coroutine
+            viewModelScope.launch {
+                try {
+                    val reminders = repository.getAllReminders(userId)
+                    _uiState.value = _uiState.value.copy(reminders = reminders)
+                } catch (e: Exception) {
+                    // Handle error silently
+                }
+            }
+        } catch (e: Exception) {
+            // Handle any unexpected errors
         }
     }
     

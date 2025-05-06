@@ -80,6 +80,10 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             _authState.value = AuthState.Unauthenticated
         }
     }
+    
+    fun refreshAuthState() {
+        checkAuthState()
+    }
 
     private suspend fun saveUserToLocal(user: FirebaseUser) {
         val localUser = User(

@@ -33,6 +33,7 @@ import com.example.taskmanager.ui.screens.HomeScreen
 import com.example.taskmanager.ui.screens.ProfileScreen
 import com.example.taskmanager.ui.viewmodel.AuthViewModel
 import com.example.taskmanager.ui.viewmodel.TaskViewModel
+import com.example.taskmanager.ui.viewmodel.AuthState
 
 sealed class Screen(val route: String, val icon: ImageVector, val label: String) {
     object Home : Screen("home", Icons.Default.Home, "Home")
@@ -50,63 +51,90 @@ fun AppNavigation(
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val authState by authViewModel.authState.collectAsState()
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = currentRoute == Screen.Home.route,
-                    onClick = { navController.navigate(Screen.Home.route) },
-                    icon = { Icon(Screen.Home.icon, contentDescription = Screen.Home.label) },
-                    label = { Text(Screen.Home.label) }
-                )
-                NavigationBarItem(
-                    selected = currentRoute == Screen.Collections.route,
-                    onClick = { navController.navigate(Screen.Collections.route) },
-                    icon = { Icon(Screen.Collections.icon, contentDescription = Screen.Collections.label) },
-                    label = { Text(Screen.Collections.label) }
-                )
-                NavigationBarItem(
-                    selected = currentRoute == Screen.Calendar.route,
-                    onClick = { navController.navigate(Screen.Calendar.route) },
-                    icon = { Icon(Screen.Calendar.icon, contentDescription = Screen.Calendar.label) },
-                    label = { Text(Screen.Calendar.label) }
-                )
-                NavigationBarItem(
-                    selected = currentRoute == Screen.Activity.route,
-                    onClick = { navController.navigate(Screen.Activity.route) },
-                    icon = { Icon(Screen.Activity.icon, contentDescription = Screen.Activity.label) },
-                    label = { Text(Screen.Activity.label) }
-                )
-                NavigationBarItem(
-                    selected = currentRoute == Screen.Profile.route,
-                    onClick = { navController.navigate(Screen.Profile.route) },
-                    icon = { Icon(Screen.Profile.icon, contentDescription = Screen.Profile.label) },
-                    label = { Text(Screen.Profile.label) }
-                )
+    when (authState) {
+        is AuthState.Authenticated -> {
+            Scaffold(
+                bottomBar = {
+                    NavigationBar {
+                        NavigationBarItem(
+                            selected = currentRoute == Screen.Home.route,
+                            onClick = { navController.navigate(Screen.Home.route) },
+                            icon = { Icon(Screen.Home.icon, contentDescription = Screen.Home.label) },
+                            label = { Text(Screen.Home.label) }
+                        )
+                        NavigationBarItem(
+                            selected = currentRoute == Screen.Collections.route,
+                            onClick = { navController.navigate(Screen.Collections.route) },
+                            icon = { Icon(Screen.Collections.icon, contentDescription = Screen.Collections.label) },
+                            label = { Text(Screen.Collections.label) }
+                        )
+                        NavigationBarItem(
+                            selected = currentRoute == Screen.Calendar.route,
+                            onClick = { navController.navigate(Screen.Calendar.route) },
+                            icon = { Icon(Screen.Calendar.icon, contentDescription = Screen.Calendar.label) },
+                            label = { Text(Screen.Calendar.label) }
+                        )
+                        NavigationBarItem(
+                            selected = currentRoute == Screen.Activity.route,
+                            onClick = { navController.navigate(Screen.Activity.route) },
+                            icon = { Icon(Screen.Activity.icon, contentDescription = Screen.Activity.label) },
+                            label = { Text(Screen.Activity.label) }
+                        )
+                        NavigationBarItem(
+                            selected = currentRoute == Screen.Profile.route,
+                            onClick = { navController.navigate(Screen.Profile.route) },
+                            icon = { Icon(Screen.Profile.icon, contentDescription = Screen.Profile.label) },
+                            label = { Text(Screen.Profile.label) }
+                        )
+                    }
+                }
+            ) { paddingValues ->
+                NavHost(
+                    navController = navController,
+                    startDestination = Screen.Home.route,
+                    modifier = Modifier.padding(paddingValues)
+                ) {
+                    composable(Screen.Home.route) {
+                        HomeScreen(viewModel = viewModel)
+                    }
+                    composable(Screen.Collections.route) {
+                        val currentUser = when (authState) {
+                            is AuthState.Authenticated -> (authState as AuthState.Authenticated).user
+                            else -> null
+                        }
+                        CollectionsScreen(
+                            viewModel = viewModel,
+                            onCollectionClick = { _ -> 
+                                // TODO: Handle collection click navigation
+                            },
+                            userId = currentUser?.uid ?: ""
+                        )
+                    }
+                    composable(Screen.Calendar.route) {
+                        CalendarScreen(viewModel = viewModel)
+                    }
+                    composable(Screen.Activity.route) {
+                        ActivityScreen(viewModel = viewModel)
+                    }
+                    composable(Screen.Profile.route) {
+                        ProfileScreen(viewModel = viewModel, authViewModel = authViewModel)
+                    }
+                }
             }
         }
-    ) { paddingValues ->
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Home.route,
-            modifier = Modifier.padding(paddingValues)
-        ) {
-            composable(Screen.Home.route) {
-                HomeScreen(viewModel = viewModel)
+        is AuthState.Loading -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
             }
-            composable(Screen.Collections.route) {
-                CollectionsScreen(viewModel = viewModel, navController = navController)
-            }
-            composable(Screen.Calendar.route) {
-                CalendarScreen(viewModel = viewModel)
-            }
-            composable(Screen.Activity.route) {
-                ActivityScreen(viewModel = viewModel)
-            }
-            composable(Screen.Profile.route) {
-                ProfileScreen(viewModel = viewModel, authViewModel = authViewModel)
-            }
+        }
+        else -> {
+            // If not authenticated, show nothing (LoginScreen will be shown by MainActivity)
+            Box(modifier = Modifier.fillMaxSize())
         }
     }
 } 

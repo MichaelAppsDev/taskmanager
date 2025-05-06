@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -23,68 +24,41 @@ import com.example.taskmanager.ui.viewmodel.AuthViewModel
 import com.example.taskmanager.ui.viewmodel.TaskViewModel
 
 class MainActivity : ComponentActivity() {
+    private val viewModel: TaskViewModel by viewModels()
+    private val authViewModel: AuthViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             TaskmanagerTheme {
-                MainScreen()
+                val authState by authViewModel.authState.collectAsState()
+                
+                when (authState) {
+                    is AuthState.Authenticated -> {
+                        AppNavigation(viewModel = viewModel, authViewModel = authViewModel)
+                    }
+                    is AuthState.Loading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                    else -> {
+                        LoginScreen(
+                            authViewModel = authViewModel,
+                            onLoginSuccess = {
+                                authViewModel.refreshAuthState()
+                            }
+                        )
+                    }
+                }
             }
         }
     }
 }
 
-@Composable
-fun MainScreen() {
-    val authViewModel: AuthViewModel = viewModel()
-    val authState by authViewModel.authState.collectAsState()
-    val taskViewModel: TaskViewModel = viewModel()
-    
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        when (authState) {
-            is AuthState.Authenticated -> {
-                AppNavigation(
-                    viewModel = taskViewModel,
-                    authViewModel = authViewModel
-                )
-            }
-            is AuthState.Unauthenticated -> {
-                LoginScreen(
-                    onLoginSuccess = {
-                        // User is now authenticated
-                    }
-                )
-            }
-            is AuthState.Loading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-            is AuthState.Error -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    androidx.compose.material3.Text(
-                        text = (authState as AuthState.Error).message,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-            is AuthState.Initial -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-        }
-    }
-}
+// MainScreen is no longer needed since MainActivity handles this functionality
+// Removing this composable to avoid duplicate ViewModel instances

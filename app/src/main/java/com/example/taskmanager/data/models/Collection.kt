@@ -10,6 +10,7 @@ data class Collection(
     val id: String = UUID.randomUUID().toString(),
     val name: String,
     val userId: String,
+    val description: String? = null,
     val imageUrl: String? = null,
     val color: Int? = null,
     val isFavorite: Boolean = false
