@@ -58,7 +58,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
+} //lol
 
 // MainScreen is no longer needed since MainActivity handles this functionality
 // Removing this composable to avoid duplicate ViewModel instances
