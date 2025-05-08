@@ -31,6 +31,7 @@ import com.example.taskmanager.ui.screens.CalendarScreen
 import com.example.taskmanager.ui.screens.CollectionsScreen
 import com.example.taskmanager.ui.screens.HomeScreen
 import com.example.taskmanager.ui.screens.ProfileScreen
+import com.example.taskmanager.ui.screens.CollectionDetailScreen
 import com.example.taskmanager.ui.viewmodel.AuthViewModel
 import com.example.taskmanager.ui.viewmodel.TaskViewModel
 import com.example.taskmanager.ui.viewmodel.AuthState
@@ -106,10 +107,18 @@ fun AppNavigation(
                         }
                         CollectionsScreen(
                             viewModel = viewModel,
-                            onCollectionClick = { _ -> 
-                                // TODO: Handle collection click navigation
+                            onCollectionClick = { collectionId ->
+                                navController.navigate("collection/$collectionId")
                             },
                             userId = currentUser?.uid ?: ""
+                        )
+                    }
+                    composable("collection/{collectionId}") { backStackEntry ->
+                        val collectionId = backStackEntry.arguments?.getString("collectionId") ?: ""
+                        CollectionDetailScreen(
+                            collectionId = collectionId,
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() }
                         )
                     }
                     composable(Screen.Calendar.route) {
