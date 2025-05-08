@@ -2,16 +2,13 @@ package com.example.taskmanager.data.models
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import java.util.UUID
 
 @Entity(tableName = "collections")
 data class Collection(
     @PrimaryKey
-    val id: String = UUID.randomUUID().toString(),
+    val id: String = "",
     val name: String,
+    val description: String = "",
     val userId: String,
-    val description: String? = null,
-    val imageUrl: String? = null,
-    val color: Int? = null,
     val isFavorite: Boolean = false
 ) 

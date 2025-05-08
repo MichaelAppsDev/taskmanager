@@ -7,23 +7,26 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ReminderDao {
     @Query("SELECT * FROM reminders WHERE userId = :userId")
-    suspend fun getRemindersByUserId(userId: String): List<Reminder>
+    fun getAllRemindersFlow(userId: String): Flow<List<Reminder>>
 
     @Query("SELECT * FROM reminders WHERE taskId = :taskId")
-    suspend fun getRemindersByTaskId(taskId: String): List<Reminder>
+    fun getRemindersByTaskIdFlow(taskId: String): Flow<List<Reminder>>
 
     @Query("SELECT * FROM reminders WHERE id = :reminderId")
     suspend fun getReminderById(reminderId: String): Reminder?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertReminder(reminder: Reminder)
+    suspend fun insert(reminder: Reminder)
 
     @Update
-    suspend fun updateReminder(reminder: Reminder)
+    suspend fun update(reminder: Reminder)
 
-    @Delete
-    suspend fun deleteReminder(reminder: Reminder)
+    @Query("DELETE FROM reminders WHERE id = :reminderId")
+    suspend fun deleteById(reminderId: String)
 
-    @Query("SELECT * FROM reminders WHERE userId = :userId")
-    fun getAllReminders(userId: String): Flow<List<Reminder>>
+    @Query("DELETE FROM reminders WHERE taskId = :taskId")
+    suspend fun deleteByTaskId(taskId: String)
+
+    @Query("SELECT COUNT(*) FROM reminders WHERE userId = :userId AND isRead = 0")
+    fun getUnreadRemindersCount(userId: String): Flow<Int>
 } 

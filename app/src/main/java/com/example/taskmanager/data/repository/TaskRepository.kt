@@ -1,5 +1,6 @@
 package com.example.taskmanager.data.repository
 
+import com.example.taskmanager.data.local.TaskDatabase
 import com.example.taskmanager.data.local.CollectionDao
 import com.example.taskmanager.data.local.TaskDao
 import com.example.taskmanager.data.local.ReminderDao
@@ -7,89 +8,162 @@ import com.example.taskmanager.data.models.Collection
 import com.example.taskmanager.data.models.Task
 import com.example.taskmanager.data.models.Reminder
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-class TaskRepository(
-    private val collectionDao: CollectionDao,
-    private val taskDao: TaskDao,
-    private val reminderDao: ReminderDao
-) {
-    // Collections
-    suspend fun getAllCollections(userId: String): List<Collection> {
-        return collectionDao.getCollectionsByUserId(userId)
+class TaskRepository(private val database: TaskDatabase) {
+    private val collectionDao: CollectionDao = database.collectionDao()
+    private val taskDao: TaskDao = database.taskDao()
+    private val reminderDao: ReminderDao = database.reminderDao()
+
+    fun getAllCollectionsFlow(userId: String): Flow<List<Collection>> = flow {
+        try {
+            withContext(Dispatchers.IO) {
+                collectionDao.getAllCollections(userId).collect { collections ->
+                    emit(collections)
+                }
+            }
+        } catch (e: Exception) {
+            emit(emptyList())
+        }
     }
 
-    suspend fun getCollectionById(collectionId: String): Collection? {
-        return collectionDao.getCollectionById(collectionId)
+    fun getCollectionByIdFlow(collectionId: String): Flow<Collection?> = flow {
+        try {
+            withContext(Dispatchers.IO) {
+                collectionDao.getCollectionByIdFlow(collectionId).collect { collection ->
+                    emit(collection)
+                }
+            }
+        } catch (e: Exception) {
+            emit(null)
+        }
+    }
+
+    fun getTasksByCollectionIdFlow(collectionId: String): Flow<List<Task>> = flow {
+        try {
+            withContext(Dispatchers.IO) {
+                taskDao.getTasksByCollectionIdFlow(collectionId).collect { tasks ->
+                    emit(tasks)
+                }
+            }
+        } catch (e: Exception) {
+            emit(emptyList())
+        }
+    }
+
+    fun getAllTasksFlow(userId: String): Flow<List<Task>> = flow {
+        try {
+            withContext(Dispatchers.IO) {
+                taskDao.getAllTasksFlow(userId).collect { tasks ->
+                    emit(tasks)
+                }
+            }
+        } catch (e: Exception) {
+            emit(emptyList())
+        }
+    }
+
+    fun getAllRemindersFlow(userId: String): Flow<List<Reminder>> = flow {
+        try {
+            withContext(Dispatchers.IO) {
+                reminderDao.getAllRemindersFlow(userId).collect { reminders ->
+                    emit(reminders)
+                }
+            }
+        } catch (e: Exception) {
+            emit(emptyList())
+        }
     }
 
     suspend fun addCollection(collection: Collection) {
-        collectionDao.insertCollection(collection)
+        withContext(Dispatchers.IO) {
+            try {
+                collectionDao.insert(collection)
+            } catch (e: Exception) {
+                throw e
+            }
+        }
     }
 
     suspend fun updateCollection(collection: Collection) {
-        collectionDao.updateCollection(collection)
+        withContext(Dispatchers.IO) {
+            try {
+                collectionDao.update(collection)
+            } catch (e: Exception) {
+                throw e
+            }
+        }
     }
 
-    suspend fun deleteCollection(collection: Collection) {
-        collectionDao.deleteCollection(collection)
-    }
-
-    // Tasks
-    suspend fun getTasksByCollectionId(collectionId: String): List<Task> {
-        return taskDao.getTasksByCollectionId(collectionId)
-    }
-
-    suspend fun getTaskById(taskId: String): Task? {
-        return taskDao.getTaskById(taskId)
+    suspend fun deleteCollection(collectionId: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                collectionDao.deleteById(collectionId)
+            } catch (e: Exception) {
+                throw e
+            }
+        }
     }
 
     suspend fun addTask(task: Task) {
-        taskDao.insertTask(task)
+        withContext(Dispatchers.IO) {
+            try {
+                taskDao.insert(task)
+            } catch (e: Exception) {
+                throw e
+            }
+        }
     }
 
     suspend fun updateTask(task: Task) {
-        taskDao.updateTask(task)
+        withContext(Dispatchers.IO) {
+            try {
+                taskDao.update(task)
+            } catch (e: Exception) {
+                throw e
+            }
+        }
     }
 
-    suspend fun deleteTask(task: Task) {
-        taskDao.deleteTask(task)
-    }
-
-    // Reminders
-    suspend fun getAllReminders(userId: String): List<Reminder> {
-        return reminderDao.getRemindersByUserId(userId)
-    }
-
-    suspend fun getRemindersByTaskId(taskId: String): List<Reminder> {
-        return reminderDao.getRemindersByTaskId(taskId)
-    }
-
-    suspend fun getReminderById(reminderId: String): Reminder? {
-        return reminderDao.getReminderById(reminderId)
+    suspend fun deleteTask(taskId: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                taskDao.deleteById(taskId)
+            } catch (e: Exception) {
+                throw e
+            }
+        }
     }
 
     suspend fun addReminder(reminder: Reminder) {
-        reminderDao.insertReminder(reminder)
+        withContext(Dispatchers.IO) {
+            try {
+                reminderDao.insert(reminder)
+            } catch (e: Exception) {
+                throw e
+            }
+        }
     }
 
     suspend fun updateReminder(reminder: Reminder) {
-        reminderDao.updateReminder(reminder)
+        withContext(Dispatchers.IO) {
+            try {
+                reminderDao.update(reminder)
+            } catch (e: Exception) {
+                throw e
+            }
+        }
     }
 
-    suspend fun deleteReminder(reminder: Reminder) {
-        reminderDao.deleteReminder(reminder)
-    }
-
-    // Flow-based queries
-    fun getAllCollectionsFlow(userId: String): Flow<List<Collection>> {
-        return collectionDao.getAllCollections(userId)
-    }
-
-    fun getAllTasksFlow(userId: String): Flow<List<Task>> {
-        return taskDao.getAllTasks(userId)
-    }
-
-    fun getAllRemindersFlow(userId: String): Flow<List<Reminder>> {
-        return reminderDao.getAllReminders(userId)
+    suspend fun deleteReminder(reminderId: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                reminderDao.deleteById(reminderId)
+            } catch (e: Exception) {
+                throw e
+            }
+        }
     }
 } 

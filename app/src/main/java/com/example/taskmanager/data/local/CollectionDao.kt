@@ -7,20 +7,20 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CollectionDao {
     @Query("SELECT * FROM collections WHERE userId = :userId")
-    suspend fun getCollectionsByUserId(userId: String): List<Collection>
+    fun getAllCollections(userId: String): Flow<List<Collection>>
 
     @Query("SELECT * FROM collections WHERE id = :collectionId")
-    suspend fun getCollectionById(collectionId: String): Collection?
+    fun getCollectionByIdFlow(collectionId: String): Flow<Collection?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertCollection(collection: Collection)
+    suspend fun insert(collection: Collection)
 
     @Update
-    suspend fun updateCollection(collection: Collection)
+    suspend fun update(collection: Collection)
 
-    @Delete
-    suspend fun deleteCollection(collection: Collection)
+    @Query("DELETE FROM collections WHERE id = :collectionId")
+    suspend fun deleteById(collectionId: String)
 
-    @Query("SELECT * FROM collections WHERE userId = :userId")
-    fun getAllCollections(userId: String): Flow<List<Collection>>
+    @Query("SELECT * FROM collections WHERE userId = :userId AND isFavorite = 1")
+    fun getFavoriteCollections(userId: String): Flow<List<Collection>>
 } 

@@ -9,6 +9,7 @@ import com.example.taskmanager.data.models.User
 import com.example.taskmanager.data.models.Collection
 import com.example.taskmanager.data.models.Task
 import com.example.taskmanager.data.models.Reminder
+import com.example.taskmanager.data.local.converters.DateTimeConverters
 
 @Database(
     entities = [
@@ -20,7 +21,7 @@ import com.example.taskmanager.data.models.Reminder
     version = 1,
     exportSchema = false
 )
-@TypeConverters(Converters::class)
+@TypeConverters(DateTimeConverters::class)
 abstract class TaskDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun collectionDao(): CollectionDao
@@ -37,22 +38,12 @@ abstract class TaskDatabase : RoomDatabase() {
                     context.applicationContext,
                     TaskDatabase::class.java,
                     "task_database"
-                ).build()
+                )
+                .fallbackToDestructiveMigration()
+                .build()
                 INSTANCE = instance
                 instance
             }
         }
-    }
-}
-
-class Converters {
-    @androidx.room.TypeConverter
-    fun fromTimestamp(value: Long?): java.util.Date? {
-        return value?.let { java.util.Date(it) }
-    }
-
-    @androidx.room.TypeConverter
-    fun dateToTimestamp(date: java.util.Date?): Long? {
-        return date?.time
     }
 } 

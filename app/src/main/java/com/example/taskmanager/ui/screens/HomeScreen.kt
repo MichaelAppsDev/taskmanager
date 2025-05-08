@@ -14,6 +14,8 @@ import com.example.taskmanager.data.models.Task
 import com.example.taskmanager.ui.viewmodel.TaskViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import java.time.ZoneOffset
+import com.example.taskmanager.ui.components.TaskItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,7 +58,7 @@ fun HomeScreen(viewModel: TaskViewModel) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TaskItem(task: Task) {
+private fun HomeTaskItem(task: Task) {
     val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
     
     Card(
@@ -70,7 +72,7 @@ private fun TaskItem(task: Task) {
                 .padding(16.dp)
         ) {
             Text(
-                text = task.title,
+                text = task.name,
                 style = MaterialTheme.typography.titleMedium
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -78,10 +80,10 @@ private fun TaskItem(task: Task) {
                 text = task.description,
                 style = MaterialTheme.typography.bodyMedium
             )
-            task.dueDate?.let { dueDate ->
+            task.deadline?.let { deadline ->
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Due: ${dateFormat.format(dueDate)}",
+                    text = "Due: ${dateFormat.format(Date.from(deadline.toInstant(ZoneOffset.UTC)))}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )

@@ -22,15 +22,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.taskmanager.ui.screens.ActivityScreen
 import com.example.taskmanager.ui.screens.CalendarScreen
 import com.example.taskmanager.ui.screens.CollectionsScreen
 import com.example.taskmanager.ui.screens.HomeScreen
 import com.example.taskmanager.ui.screens.ProfileScreen
+import com.example.taskmanager.ui.screens.CollectionDetailScreen
 import com.example.taskmanager.ui.viewmodel.AuthViewModel
 import com.example.taskmanager.ui.viewmodel.TaskViewModel
 import com.example.taskmanager.ui.viewmodel.AuthState
@@ -41,6 +44,9 @@ sealed class Screen(val route: String, val icon: ImageVector, val label: String)
     object Calendar : Screen("calendar", Icons.Default.DateRange, "Calendar")
     object Activity : Screen("activity", Icons.Default.Notifications, "Activity")
     object Profile : Screen("profile", Icons.Default.Person, "Profile")
+    object CollectionDetail : Screen("collection/{collectionId}", Icons.Default.List, "Collection") {
+        fun createRoute(collectionId: String) = "collection/$collectionId"
+    }
 }
 
 @Composable
@@ -106,10 +112,23 @@ fun AppNavigation(
                         }
                         CollectionsScreen(
                             viewModel = viewModel,
-                            onCollectionClick = { _ -> 
-                                // TODO: Handle collection click navigation
+                            onCollectionClick = { collectionId -> 
+                                navController.navigate(Screen.CollectionDetail.createRoute(collectionId))
                             },
                             userId = currentUser?.uid ?: ""
+                        )
+                    }
+                    composable(
+                        route = Screen.CollectionDetail.route,
+                        arguments = listOf(
+                            navArgument("collectionId") { type = NavType.StringType }
+                        )
+                    ) { backStackEntry ->
+                        val collectionId = backStackEntry.arguments?.getString("collectionId") ?: return@composable
+                        CollectionDetailScreen(
+                            collectionId = collectionId,
+                            viewModel = viewModel,
+                            onNavigateBack = { navController.popBackStack() }
                         )
                     }
                     composable(Screen.Calendar.route) {

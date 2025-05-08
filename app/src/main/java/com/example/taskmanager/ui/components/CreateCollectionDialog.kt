@@ -94,9 +94,8 @@ fun CreateCollectionDialog(
                             val collection = Collection(
                                 name = name,
                                 userId = userId,
-                                description = description.takeIf { it.isNotBlank() },
-                                color = selectedColor?.toArgb(),
-                                imageUrl = imageUrl
+                                description = description,
+                                isFavorite = false
                             )
                             onConfirm(collection)
                         },

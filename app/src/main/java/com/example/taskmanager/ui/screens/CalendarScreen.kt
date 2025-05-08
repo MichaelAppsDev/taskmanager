@@ -202,7 +202,9 @@ fun CalendarScreen(viewModel: TaskViewModel) {
             // Tasks for selected date
             TaskList(
                 date = selectedDate,
-                tasks = uiState.currentDateTasks
+                tasks = uiState.tasks.filter { task ->
+                    task.deadline?.toLocalDate()?.equals(selectedDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate()) == true
+                }
             )
         }
     }

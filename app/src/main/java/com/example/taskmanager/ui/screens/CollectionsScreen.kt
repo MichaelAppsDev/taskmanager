@@ -57,7 +57,7 @@ fun CollectionsScreen(
         CreateCollectionDialog(
             onDismiss = { showCreateDialog = false },
             onConfirm = { collection ->
-                viewModel.addCollection(collection.name)
+                viewModel.addCollection(collection)
                 showCreateDialog = false
             },
             userId = userId
