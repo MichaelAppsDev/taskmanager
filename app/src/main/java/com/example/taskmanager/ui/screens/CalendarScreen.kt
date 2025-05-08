@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -42,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.taskmanager.data.models.Task
 import com.example.taskmanager.ui.theme.LightPurple
 import com.example.taskmanager.ui.viewmodel.TaskViewModel
 import java.text.SimpleDateFormat
@@ -64,6 +66,11 @@ fun CalendarScreen(viewModel: TaskViewModel) {
     
     // Calculate days in month
     val daysInMonthList = getDaysInMonthList(selectedDate)
+
+    // Filter tasks with deadline matching selected date
+    val selectedDayTasks = uiState.tasks.filter { task ->
+        task.dueDate != null && isSameDay(task.dueDate, selectedDate)
+    }
     
     Scaffold(
         floatingActionButton = {
@@ -200,9 +207,9 @@ fun CalendarScreen(viewModel: TaskViewModel) {
             Spacer(modifier = Modifier.height(16.dp))
             
             // Tasks for selected date
-            TaskList(
+            DeadlineEventList(
                 date = selectedDate,
-                tasks = uiState.currentDateTasks
+                tasks = selectedDayTasks
             )
         }
     }
@@ -243,15 +250,14 @@ fun CalendarDay(
 }
 
 @Composable
-fun TaskList(date: Date, tasks: List<com.example.taskmanager.data.models.Task>) {
+fun DeadlineEventList(date: Date, tasks: List<Task>) {
     Column {
         Text(
-            text = "Task List",
+            text = "Events for this day",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 8.dp)
         )
-        
         if (tasks.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -259,46 +265,29 @@ fun TaskList(date: Date, tasks: List<com.example.taskmanager.data.models.Task>) 
                     .padding(vertical = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("no tasks listed...")
+                Text("No deadlines today.")
             }
         } else {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Task items will be added here
+                items(tasks) { task ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${task.title} deadline",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
+                }
             }
         }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Text(
-            text = "Progress",
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold
-        )
-        
-        // Progress bar
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(Color.LightGray)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.0f) // Progress percentage
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(MaterialTheme.colorScheme.primary)
-            )
-        }
-        
-        Text(
-            text = "0%",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(top = 4.dp)
-        )
     }
 }
 
@@ -349,4 +338,13 @@ fun getDaysInMonthList(selectedDate: Date): List<CalendarDayInfo> {
     }
     
     return days
+}
+
+// Helper function to check if two dates are the same day
+fun isSameDay(date1: Date?, date2: Date?): Boolean {
+    if (date1 == null || date2 == null) return false
+    val cal1 = Calendar.getInstance().apply { time = date1 }
+    val cal2 = Calendar.getInstance().apply { time = date2 }
+    return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+            cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
 } 

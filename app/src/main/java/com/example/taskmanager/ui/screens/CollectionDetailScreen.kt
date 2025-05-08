@@ -17,6 +17,9 @@ import com.example.taskmanager.ui.viewmodel.TaskViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.rememberDatePickerState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,7 +117,12 @@ private fun AddTaskDialog(
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    // For simplicity, dueDate is omitted; can be added with a date picker
+    var showDatePicker by remember { mutableStateOf(false) }
+    var dueDateMillis by remember { mutableStateOf<Long?>(null) }
+    val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+    val dueDate: Date? = dueDateMillis?.let { Date(it) }
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dueDateMillis)
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add Task") },
@@ -133,12 +141,25 @@ private fun AddTaskDialog(
                     label = { Text("Description") },
                     minLines = 2
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Deadline: ", style = MaterialTheme.typography.bodyMedium)
+                    if (dueDate != null) {
+                        Text(dateFormat.format(dueDate), style = MaterialTheme.typography.bodyMedium)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        TextButton(onClick = { dueDateMillis = null }) { Text("Clear") }
+                    } else {
+                        Text("None", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = { showDatePicker = true }) { Text("Pick Date") }
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    onConfirm(title, description, null)
+                    onConfirm(title, description, dueDate)
                 },
                 enabled = title.isNotBlank()
             ) {
@@ -149,4 +170,21 @@ private fun AddTaskDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    dueDateMillis = datePickerState.selectedDateMillis
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 } 
