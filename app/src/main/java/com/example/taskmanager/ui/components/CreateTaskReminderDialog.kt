@@ -5,6 +5,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,6 +18,7 @@ import androidx.compose.ui.window.Dialog
 import com.example.taskmanager.data.models.Priority
 import com.example.taskmanager.data.models.TaskStatus
 import java.util.Date
+import java.util.Calendar
 
 enum class ItemType {
     TASK, REMINDER
@@ -32,13 +36,22 @@ fun CreateTaskReminderDialog(
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
     var dateMillis by remember { mutableStateOf<Long?>(null) }
+    var selectedHour by remember { mutableStateOf(12) }
+    var selectedMinute by remember { mutableStateOf(0) }
     var priority by remember { mutableStateOf(Priority.NORMAL) }
     var status by remember { mutableStateOf(TaskStatus.UNCOMPLETED) }
     
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dateMillis)
-    val date: Date? = dateMillis?.let { Date(it) }
-    val dateFormat = java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault())
+    val date: Date? = dateMillis?.let { 
+        val calendar = Calendar.getInstance()
+        calendar.timeInMillis = it
+        calendar.set(Calendar.HOUR_OF_DAY, selectedHour)
+        calendar.set(Calendar.MINUTE, selectedMinute)
+        calendar.time
+    }
+    val dateFormat = java.text.SimpleDateFormat("MMM dd, yyyy HH:mm", java.util.Locale.getDefault())
     
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -58,48 +71,75 @@ fun CreateTaskReminderDialog(
                     style = MaterialTheme.typography.headlineSmall
                 )
                 
-                // Type selection
-                Column(Modifier.selectableGroup()) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectable(
+                // Type selection with improved visual feedback
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Column(Modifier.selectableGroup()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .selectable(
+                                    selected = selectedType == ItemType.TASK,
+                                    onClick = { selectedType = ItemType.TASK },
+                                    role = Role.RadioButton
+                                )
+                                .padding(16.dp)
+                        ) {
+                            RadioButton(
                                 selected = selectedType == ItemType.TASK,
-                                onClick = { selectedType = ItemType.TASK },
-                                role = Role.RadioButton
+                                onClick = null
                             )
-                            .padding(8.dp)
-                    ) {
-                        RadioButton(
-                            selected = selectedType == ItemType.TASK,
-                            onClick = null
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Task")
-                    }
-                    
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectable(
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    "Task",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Text(
+                                    "Create a task with priority and status",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
+                        
+                        Divider()
+                        
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .selectable(
+                                    selected = selectedType == ItemType.REMINDER,
+                                    onClick = { selectedType = ItemType.REMINDER },
+                                    role = Role.RadioButton
+                                )
+                                .padding(16.dp)
+                        ) {
+                            RadioButton(
                                 selected = selectedType == ItemType.REMINDER,
-                                onClick = { selectedType = ItemType.REMINDER },
-                                role = Role.RadioButton
+                                onClick = null
                             )
-                            .padding(8.dp)
-                    ) {
-                        RadioButton(
-                            selected = selectedType == ItemType.REMINDER,
-                            onClick = null
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Reminder")
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    "Reminder",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Text(
+                                    "Set a reminder for a specific time",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
                     }
                 }
-                
-                Divider()
                 
                 // Common fields
                 OutlinedTextField(
@@ -118,93 +158,132 @@ fun CreateTaskReminderDialog(
                     minLines = 2
                 )
                 
-                // Date selection
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = if (selectedType == ItemType.TASK) "Due Date:" else "Reminder Date:",
-                        style = MaterialTheme.typography.bodyMedium
+                // Date and time selection
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    if (date != null) {
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Text(
-                            text = dateFormat.format(date),
-                            style = MaterialTheme.typography.bodyMedium
+                            text = if (selectedType == ItemType.TASK) "Due Date & Time:" else "Reminder Date & Time:",
+                            style = MaterialTheme.typography.titleMedium
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        TextButton(onClick = { dateMillis = null }) {
-                            Text("Clear")
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (date != null) {
+                                Text(
+                                    text = dateFormat.format(date),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                TextButton(onClick = { 
+                                    dateMillis = null
+                                    selectedHour = 12
+                                    selectedMinute = 0
+                                }) {
+                                    Text("Clear")
+                                }
+                            } else {
+                                Text(
+                                    text = "Not set",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
                         }
-                    } else {
-                        Text(
-                            text = "None",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                    Spacer(modifier = Modifier.weight(1f))
-                    Button(onClick = { showDatePicker = true }) {
-                        Text("Pick Date")
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = { showDatePicker = true },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Pick Date")
+                            }
+                            Button(
+                                onClick = { showTimePicker = true },
+                                modifier = Modifier.weight(1f),
+                                enabled = dateMillis != null
+                            ) {
+                                Text("Pick Time")
+                            }
+                        }
                     }
                 }
                 
                 // Task-specific fields
                 if (selectedType == ItemType.TASK) {
-                    Column {
-                        Text(
-                            text = "Priority:",
-                            style = MaterialTheme.typography.bodyMedium
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
                         )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            PriorityButton(
-                                text = "Low",
-                                selected = priority == Priority.LOW,
-                                onClick = { priority = Priority.LOW },
-                                modifier = Modifier.weight(1f)
+                            Text(
+                                text = "Priority:",
+                                style = MaterialTheme.typography.titleMedium
                             )
-                            PriorityButton(
-                                text = "Normal",
-                                selected = priority == Priority.NORMAL,
-                                onClick = { priority = Priority.NORMAL },
-                                modifier = Modifier.weight(1f)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                PriorityButton(
+                                    text = "Low",
+                                    selected = priority == Priority.LOW,
+                                    onClick = { priority = Priority.LOW },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                PriorityButton(
+                                    text = "Normal",
+                                    selected = priority == Priority.NORMAL,
+                                    onClick = { priority = Priority.NORMAL },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                PriorityButton(
+                                    text = "High",
+                                    selected = priority == Priority.HIGH,
+                                    onClick = { priority = Priority.HIGH },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Text(
+                                text = "Status:",
+                                style = MaterialTheme.typography.titleMedium
                             )
-                            PriorityButton(
-                                text = "High",
-                                selected = priority == Priority.HIGH,
-                                onClick = { priority = Priority.HIGH },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        Text(
-                            text = "Status:",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            StatusButton(
-                                text = "Uncompleted",
-                                selected = status == TaskStatus.UNCOMPLETED,
-                                onClick = { status = TaskStatus.UNCOMPLETED },
-                                modifier = Modifier.weight(1f)
-                            )
-                            StatusButton(
-                                text = "Completed",
-                                selected = status == TaskStatus.COMPLETED,
-                                onClick = { status = TaskStatus.COMPLETED },
-                                modifier = Modifier.weight(1f)
-                            )
-                            StatusButton(
-                                text = "Outdated",
-                                selected = status == TaskStatus.OUTDATED,
-                                onClick = { status = TaskStatus.OUTDATED },
-                                modifier = Modifier.weight(1f)
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                StatusButton(
+                                    text = "Uncompleted",
+                                    selected = status == TaskStatus.UNCOMPLETED,
+                                    onClick = { status = TaskStatus.UNCOMPLETED },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                StatusButton(
+                                    text = "Completed",
+                                    selected = status == TaskStatus.COMPLETED,
+                                    onClick = { status = TaskStatus.COMPLETED },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
                         }
                     }
                 }
@@ -259,6 +338,54 @@ fun CreateTaskReminderDialog(
             DatePicker(state = datePickerState)
         }
     }
+    
+    if (showTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("Select Time") },
+            text = {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        // Hour picker
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Hour")
+                            NumberPicker(
+                                value = selectedHour,
+                                onValueChange = { selectedHour = it },
+                                range = 0..23
+                            )
+                        }
+                        
+                        // Minute picker
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Minute")
+                            NumberPicker(
+                                value = selectedMinute,
+                                onValueChange = { selectedMinute = it },
+                                range = 0..59
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -296,5 +423,42 @@ private fun StatusButton(
         modifier = modifier
     ) {
         Text(text, maxLines = 1)
+    }
+}
+
+@Composable
+private fun NumberPicker(
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    range: IntRange
+) {
+    Column {
+        IconButton(
+            onClick = { 
+                if (value < range.last) onValueChange(value + 1)
+            }
+        ) {
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowUp,
+                contentDescription = "Increase"
+            )
+        }
+        
+        Text(
+            text = value.toString().padStart(2, '0'),
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+        
+        IconButton(
+            onClick = { 
+                if (value > range.first) onValueChange(value - 1)
+            }
+        ) {
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = "Decrease"
+            )
+        }
     }
 } 

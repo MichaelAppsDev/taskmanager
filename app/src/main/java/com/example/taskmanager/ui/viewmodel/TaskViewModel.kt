@@ -15,7 +15,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import java.util.*
 
 class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private val database = TaskDatabase.getDatabase(application)
@@ -30,6 +33,13 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     
     // Track if we've already started loading data
     private var isDataLoaded = false
+    
+    private val notificationCheckJob = viewModelScope.launch {
+        while (true) {
+            checkTaskDeadlines()
+            delay(60000) // Check every minute
+        }
+    }
     
     init {
         // Wait for auth to be ready before loading data
@@ -83,6 +93,55 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         } catch (e: Exception) {
             android.util.Log.e("TaskViewModel", "Error in loadUserData", e)
         }
+    }
+    
+    private suspend fun checkTaskDeadlines() {
+        val currentTime = Calendar.getInstance().time
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val tasks = repository.getAllTasksFlow(userId).first()
+        
+        tasks.forEach { task ->
+            task.dueDate?.let { dueDate ->
+                val timeDiff = dueDate.time - currentTime.time
+                val hoursUntilDeadline = timeDiff / (1000.0 * 60 * 60)
+                
+                // Update task status if overdue
+                if (timeDiff < 0 && task.status == TaskStatus.UNCOMPLETED) {
+                    viewModelScope.launch {
+                        updateTask(task.copy(status = TaskStatus.OUTDATED))
+                        createDeadlineNotification(task, true)
+                    }
+                }
+                // Create notification for approaching deadline (24 hours before)
+                else if (hoursUntilDeadline in 1.0..24.0 && task.status == TaskStatus.UNCOMPLETED) {
+                    viewModelScope.launch {
+                        createDeadlineNotification(task, false)
+                    }
+                }
+            }
+        }
+    }
+    
+    private suspend fun createDeadlineNotification(task: Task, isOverdue: Boolean) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val title = if (isOverdue) "Task Overdue: ${task.title}" else "Deadline Approaching: ${task.title}"
+        val description = if (isOverdue) {
+            "The task '${task.title}' is now overdue. Please complete it as soon as possible."
+        } else {
+            "The task '${task.title}' is due in less than 24 hours. Don't forget to complete it!"
+        }
+        
+        val reminder = Reminder(
+            title = title,
+            description = description,
+            taskId = task.id,
+            userId = userId,
+            date = Calendar.getInstance().time,
+            isRead = false
+        )
+        
+        repository.addReminder(reminder)
+        loadUserData()
     }
     
     fun addCollection(name: String, description: String? = null, color: Int? = null) {
