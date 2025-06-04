@@ -76,18 +76,6 @@ fun CalendarScreen(viewModel: TaskViewModel) {
     }
     
     Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { /* Handle add task */ },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Task"
-                )
-            }
-        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
