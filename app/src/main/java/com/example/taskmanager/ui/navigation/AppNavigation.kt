@@ -32,6 +32,7 @@ import com.example.taskmanager.ui.screens.CollectionsScreen
 import com.example.taskmanager.ui.screens.HomeScreen
 import com.example.taskmanager.ui.screens.ProfileScreen
 import com.example.taskmanager.ui.screens.CollectionDetailScreen
+import com.example.taskmanager.ui.screens.ArchiveCollectionScreen
 import com.example.taskmanager.ui.viewmodel.AuthViewModel
 import com.example.taskmanager.ui.viewmodel.TaskViewModel
 import com.example.taskmanager.ui.viewmodel.AuthState
@@ -108,7 +109,11 @@ fun AppNavigation(
                         CollectionsScreen(
                             viewModel = viewModel,
                             onCollectionClick = { collectionId ->
-                                navController.navigate("collection/$collectionId")
+                                if (collectionId == "archive") {
+                                    navController.navigate("archive")
+                                } else {
+                                    navController.navigate("collection/$collectionId")
+                                }
                             },
                             userId = currentUser?.uid ?: ""
                         )
@@ -129,6 +134,9 @@ fun AppNavigation(
                     }
                     composable(Screen.Profile.route) {
                         ProfileScreen(viewModel = viewModel, authViewModel = authViewModel)
+                    }
+                    composable("archive") {
+                        ArchiveCollectionScreen(viewModel = viewModel)
                     }
                 }
             }

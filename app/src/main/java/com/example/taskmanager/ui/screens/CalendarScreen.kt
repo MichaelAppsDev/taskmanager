@@ -44,12 +44,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.taskmanager.data.models.Task
+import com.example.taskmanager.data.models.Collection
+import com.example.taskmanager.ui.components.TaskItem
 import com.example.taskmanager.ui.theme.LightPurple
 import com.example.taskmanager.ui.viewmodel.TaskViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import androidx.compose.foundation.layout.PaddingValues
 
 @Composable
 fun CalendarScreen(viewModel: TaskViewModel) {
@@ -69,7 +72,7 @@ fun CalendarScreen(viewModel: TaskViewModel) {
 
     // Filter tasks with deadline matching selected date
     val selectedDayTasks = uiState.tasks.filter { task ->
-        task.dueDate != null && isSameDay(task.dueDate, selectedDate)
+        task.dueDate != null && isSameDay(task.dueDate, selectedDate) && !task.isArchived
     }
     
     Scaffold(
@@ -208,8 +211,9 @@ fun CalendarScreen(viewModel: TaskViewModel) {
             
             // Tasks for selected date
             DeadlineEventList(
-                date = selectedDate,
-                tasks = selectedDayTasks
+                tasks = selectedDayTasks,
+                collections = uiState.collections,
+                viewModel = viewModel
             )
         }
     }
@@ -250,7 +254,11 @@ fun CalendarDay(
 }
 
 @Composable
-fun DeadlineEventList(date: Date, tasks: List<Task>) {
+fun DeadlineEventList(
+    tasks: List<Task>,
+    collections: List<Collection>,
+    viewModel: TaskViewModel
+) {
     Column {
         Text(
             text = "Events for this day",
@@ -269,22 +277,17 @@ fun DeadlineEventList(date: Date, tasks: List<Task>) {
             }
         } else {
             LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp)
             ) {
                 items(tasks) { task ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "${task.title} deadline",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
-                    }
+                    val collection = collections.find { it.id == task.collectionId }
+                    TaskItem(
+                        task = task,
+                        viewModel = viewModel,
+                        collectionColor = collection?.color,
+                        collectionName = collection?.name
+                    )
                 }
             }
         }
@@ -318,7 +321,7 @@ fun getDaysInMonthList(selectedDate: Date): List<CalendarDayInfo> {
     
     // Get the days to display (6 weeks = 42 days)
     val days = mutableListOf<CalendarDayInfo>()
-    val currentMonth = selectedDate.month
+    val currentMonth = calendar.get(Calendar.MONTH)
     
     repeat(42) {
         val day = calendar.get(Calendar.DAY_OF_MONTH)

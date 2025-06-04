@@ -12,14 +12,21 @@ data class Task(
     val title: String,
     val description: String = "",
     val dueDate: Date? = null,
-    val collectionId: String,
     val userId: String,
     val isCompleted: Boolean = false,
     val category: String? = null,
     val priority: Priority = Priority.NORMAL,
-    val createdAt: Date = Date()
+    val status: TaskStatus = TaskStatus.UNCOMPLETED,
+    val createdAt: Date = Date(),
+    val isArchived: Boolean = false,
+    val collectionId: String? = null,
+    val originalCollectionId: String? = null
 )
 
 enum class Priority {
     LOW, NORMAL, HIGH
+}
+
+enum class TaskStatus {
+    UNCOMPLETED, COMPLETED, OUTDATED
 } 

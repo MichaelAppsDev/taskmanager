@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.taskmanager.data.models.Collection
+import com.example.taskmanager.data.models.TaskStatus
 import com.example.taskmanager.ui.theme.SchoolColor
 import com.example.taskmanager.ui.theme.ShoppingColor
 import com.example.taskmanager.ui.theme.WorkColor
@@ -25,6 +26,12 @@ fun CollectionCard(
     viewModel: TaskViewModel,
     onClick: () -> Unit
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+    val tasks = uiState.tasks.filter { it.collectionId == collection.id }
+    val completedTasks = tasks.count { it.status == TaskStatus.COMPLETED }
+    val uncompletedTasks = tasks.count { it.status == TaskStatus.UNCOMPLETED }
+    val outdatedTasks = tasks.count { it.status == TaskStatus.OUTDATED }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -38,12 +45,7 @@ fun CollectionCard(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        color = when (collection.name) {
-                            "School" -> SchoolColor
-                            "Work" -> WorkColor
-                            "Shopping" -> ShoppingColor
-                            else -> MaterialTheme.colorScheme.primary
-                        }
+                        color = collection.color?.let { Color(it) } ?: MaterialTheme.colorScheme.primary
                     )
             )
             
@@ -81,7 +83,7 @@ fun CollectionCard(
                 
                 // Task statistics
                 Text(
-                    text = "Tasks: 0 | Completed: 0 | All: 0",
+                    text = "Tasks: $uncompletedTasks | Completed: $completedTasks | Outdated: $outdatedTasks",
                     color = Color.White,
                     fontSize = 12.sp
                 )

@@ -13,6 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.taskmanager.data.models.Collection
 import com.example.taskmanager.data.models.Task
+import com.example.taskmanager.data.models.Reminder
+import com.example.taskmanager.ui.components.TaskItem
+import com.example.taskmanager.ui.components.ReminderItem
 import com.example.taskmanager.ui.viewmodel.TaskViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -20,6 +23,11 @@ import java.util.*
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
+import com.example.taskmanager.data.models.Priority
+import com.example.taskmanager.data.models.TaskStatus
+import com.example.taskmanager.ui.components.CreateTaskReminderDialog
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,7 +39,13 @@ fun CollectionDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val collection = uiState.collections.find { it.id == collectionId }
     val tasks = uiState.tasks.filter { it.collectionId == collectionId }
-    var showAddTaskDialog by remember { mutableStateOf(false) }
+    val reminders = uiState.reminders.filter { reminder -> 
+        // Show reminders that are standalone (taskId is empty) or related to tasks in this collection
+        reminder.taskId.isEmpty() || tasks.any { task -> task.id == reminder.taskId }
+    }
+    
+    var showAddDialog by remember { mutableStateOf(false) }
+    var showingTasks by remember { mutableStateOf(true) }
 
     Scaffold(
         topBar = {
@@ -45,8 +59,8 @@ fun CollectionDetailScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddTaskDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add Task")
+            FloatingActionButton(onClick = { showAddDialog = true }) {
+                Icon(Icons.Default.Add, contentDescription = "Add Item")
             }
         }
     ) { paddingValues ->
@@ -60,131 +74,78 @@ fun CollectionDetailScreen(
                 Text(text = it, style = MaterialTheme.typography.bodyLarge)
                 Spacer(modifier = Modifier.height(16.dp))
             }
-            Text(text = "Tasks", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(8.dp))
-            if (tasks.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No tasks in this collection.")
+            
+            // Toggle between Tasks and Reminders
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                TabRow(
+                    selectedTabIndex = if (showingTasks) 0 else 1,
+                    modifier = Modifier.width(300.dp)
+                ) {
+                    Tab(
+                        selected = showingTasks,
+                        onClick = { showingTasks = true },
+                        text = { Text("Tasks") }
+                    )
+                    Tab(
+                        selected = !showingTasks,
+                        onClick = { showingTasks = false },
+                        text = { Text("Reminders") }
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            if (showingTasks) {
+                // Tasks view
+                if (tasks.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No tasks in this collection.")
+                    }
+                } else {
+                    LazyColumn {
+                        items(tasks) { task ->
+                            TaskItem(
+                                task = task,
+                                viewModel = viewModel,
+                                collectionColor = collection?.color
+                            )
+                        }
+                    }
                 }
             } else {
-                LazyColumn {
-                    items(tasks) { task ->
-                        TaskItem(task)
+                // Reminders view
+                if (reminders.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No reminders in this collection.")
+                    }
+                } else {
+                    LazyColumn {
+                        items(reminders) { reminder ->
+                            ReminderItem(
+                                reminder = reminder,
+                                collectionColor = collection?.color
+                            )
+                        }
                     }
                 }
             }
         }
     }
 
-    if (showAddTaskDialog) {
-        AddTaskDialog(
-            onDismiss = { showAddTaskDialog = false },
-            onConfirm = { title, description, dueDate ->
-                viewModel.addTask(title, description, collectionId, dueDate)
-                showAddTaskDialog = false
+    if (showAddDialog) {
+        CreateTaskReminderDialog(
+            collectionId = collectionId,
+            onDismiss = { showAddDialog = false },
+            onCreateTask = { title, description, dueDate, priority, status ->
+                viewModel.addTask(title, description, collectionId, dueDate, priority, status)
+            },
+            onCreateReminder = { title, description, date ->
+                viewModel.addStandaloneReminder(title, description, date)
             }
         )
-    }
-}
-
-@Composable
-private fun TaskItem(task: Task) {
-    val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = task.title, style = MaterialTheme.typography.titleMedium)
-            if (task.description.isNotBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(text = task.description, style = MaterialTheme.typography.bodyMedium)
-            }
-            task.dueDate?.let {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "Due: ${dateFormat.format(it)}", style = MaterialTheme.typography.bodySmall)
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AddTaskDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (String, String, Date?) -> Unit
-) {
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var dueDateMillis by remember { mutableStateOf<Long?>(null) }
-    val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-    val dueDate: Date? = dueDateMillis?.let { Date(it) }
-    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dueDateMillis)
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Add Task") },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Title") },
-                    singleLine = true
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Description") },
-                    minLines = 2
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Deadline: ", style = MaterialTheme.typography.bodyMedium)
-                    if (dueDate != null) {
-                        Text(dateFormat.format(dueDate), style = MaterialTheme.typography.bodyMedium)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        TextButton(onClick = { dueDateMillis = null }) { Text("Clear") }
-                    } else {
-                        Text("None", style = MaterialTheme.typography.bodyMedium)
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(onClick = { showDatePicker = true }) { Text("Pick Date") }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    onConfirm(title, description, dueDate)
-                },
-                enabled = title.isNotBlank()
-            ) {
-                Text("Add")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
-    )
-
-    if (showDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    dueDateMillis = datePickerState.selectedDateMillis
-                    showDatePicker = false
-                }) { Text("OK") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
     }
 } 

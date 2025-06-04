@@ -14,9 +14,9 @@ import com.example.taskmanager.ui.viewmodel.TaskViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(viewModel: TaskViewModel) {
+fun ArchiveScreen(viewModel: TaskViewModel) {
     val uiState by viewModel.uiState.collectAsState()
-    val tasks = uiState.tasks.filter { !it.isArchived }
+    val archivedTasks = uiState.tasks.filter { it.isArchived }
     val collections = uiState.collections
 
     Column(
@@ -25,19 +25,19 @@ fun HomeScreen(viewModel: TaskViewModel) {
             .padding(16.dp)
     ) {
         Text(
-            text = "My Tasks",
+            text = "Archived Tasks",
             style = MaterialTheme.typography.headlineMedium
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (tasks.isEmpty()) {
+        if (archivedTasks.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "No tasks yet",
+                    text = "No archived tasks",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
@@ -47,8 +47,8 @@ fun HomeScreen(viewModel: TaskViewModel) {
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp)
             ) {
-                items(tasks) { task ->
-                    val collection = collections.find { it.id == task.collectionId }
+                items(archivedTasks) { task ->
+                    val collection = collections.find { it.id == task.originalCollectionId }
                     TaskItem(
                         task = task,
                         viewModel = viewModel,

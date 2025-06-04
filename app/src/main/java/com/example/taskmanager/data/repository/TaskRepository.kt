@@ -44,7 +44,13 @@ class TaskRepository(
     }
 
     suspend fun addTask(task: Task) {
-        taskDao.insertTask(task)
+        try {
+            taskDao.insertTask(task)
+            android.util.Log.d("TaskRepository", "Task inserted into database: ${task.id}")
+        } catch (e: Exception) {
+            android.util.Log.e("TaskRepository", "Error inserting task into database", e)
+            throw e
+        }
     }
 
     suspend fun updateTask(task: Task) {

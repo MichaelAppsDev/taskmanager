@@ -7,6 +7,8 @@ import com.example.taskmanager.data.local.TaskDatabase
 import com.example.taskmanager.data.models.Collection
 import com.example.taskmanager.data.models.Task
 import com.example.taskmanager.data.models.Reminder
+import com.example.taskmanager.data.models.Priority
+import com.example.taskmanager.data.models.TaskStatus
 import com.example.taskmanager.data.repository.TaskRepository
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,7 +51,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                     val collections = repository.getAllCollections(userId)
                     _uiState.value = _uiState.value.copy(collections = collections)
                 } catch (e: Exception) {
-                    // Handle error silently
+                    android.util.Log.e("TaskViewModel", "Error loading collections", e)
                 }
             }
             
@@ -57,12 +59,15 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
             viewModelScope.launch {
                 try {
                     repository.getAllTasksFlow(userId)
-                        .catch { /* Handle error silently */ }
+                        .catch { e -> 
+                            android.util.Log.e("TaskViewModel", "Error in tasks flow", e)
+                        }
                         .collect { tasks ->
+                            android.util.Log.d("TaskViewModel", "Loaded ${tasks.size} tasks")
                             _uiState.value = _uiState.value.copy(tasks = tasks)
                         }
                 } catch (e: Exception) {
-                    // Handle error silently
+                    android.util.Log.e("TaskViewModel", "Error loading tasks", e)
                 }
             }
             
@@ -72,20 +77,22 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                     val reminders = repository.getAllReminders(userId)
                     _uiState.value = _uiState.value.copy(reminders = reminders)
                 } catch (e: Exception) {
-                    // Handle error silently
+                    android.util.Log.e("TaskViewModel", "Error loading reminders", e)
                 }
             }
         } catch (e: Exception) {
-            // Handle any unexpected errors
+            android.util.Log.e("TaskViewModel", "Error in loadUserData", e)
         }
     }
     
-    fun addCollection(name: String) {
+    fun addCollection(name: String, description: String? = null, color: Int? = null) {
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
         viewModelScope.launch {
             val collection = Collection(
                 name = name,
-                userId = userId
+                userId = userId,
+                description = description,
+                color = color
             )
             repository.addCollection(collection)
             loadUserData()
@@ -116,18 +123,29 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     
-    fun addTask(title: String, description: String, collectionId: String, dueDate: java.util.Date?) {
-        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    fun addTask(title: String, description: String, collectionId: String, dueDate: java.util.Date?, priority: Priority = Priority.NORMAL, status: TaskStatus = TaskStatus.UNCOMPLETED) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId == null) {
+            android.util.Log.e("TaskViewModel", "User not authenticated")
+            return
+        }
         viewModelScope.launch {
-            val task = Task(
-                title = title,
-                description = description,
-                collectionId = collectionId,
-                userId = userId,
-                dueDate = dueDate
-            )
-            repository.addTask(task)
-            loadUserData()
+            try {
+                val task = Task(
+                    title = title,
+                    description = description,
+                    collectionId = collectionId,
+                    userId = userId,
+                    dueDate = dueDate,
+                    priority = priority,
+                    status = status
+                )
+                repository.addTask(task)
+                android.util.Log.d("TaskViewModel", "Task added successfully: ${task.id}")
+                loadUserData()
+            } catch (e: Exception) {
+                android.util.Log.e("TaskViewModel", "Error adding task", e)
+            }
         }
     }
     
@@ -170,6 +188,21 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteReminder(reminder: Reminder) {
         viewModelScope.launch {
             repository.deleteReminder(reminder)
+            loadUserData()
+        }
+    }
+    
+    fun addStandaloneReminder(title: String, description: String, date: java.util.Date) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        viewModelScope.launch {
+            val reminder = Reminder(
+                title = title,
+                description = description,
+                taskId = "", // Empty string indicates standalone reminder
+                userId = userId,
+                date = date
+            )
+            repository.addReminder(reminder)
             loadUserData()
         }
     }

@@ -13,6 +13,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.example.taskmanager.data.models.Collection
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
 
 @Composable
 fun CreateCollectionDialog(
@@ -23,7 +25,6 @@ fun CreateCollectionDialog(
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var selectedColor by remember { mutableStateOf<Color?>(null) }
-    var imageUrl by remember { mutableStateOf<String?>(null) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -60,24 +61,16 @@ fun CreateCollectionDialog(
                 )
 
                 // Color Selection
-                Text("Theme Color (Optional)")
+                Text("Theme Color", style = MaterialTheme.typography.titleMedium)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    ColorOption(Color(0xFFE57373)) { selectedColor = it }
-                    ColorOption(Color(0xFF81C784)) { selectedColor = it }
-                    ColorOption(Color(0xFF64B5F6)) { selectedColor = it }
-                    ColorOption(Color(0xFFFFB74D)) { selectedColor = it }
-                    ColorOption(Color(0xFFBA68C8)) { selectedColor = it }
-                }
-
-                // Image Selection (Placeholder for now)
-                Button(
-                    onClick = { /* TODO: Implement image picker */ },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Select Banner Image (Optional)")
+                    ColorOption(Color(0xFFE57373), selectedColor) { selectedColor = it }
+                    ColorOption(Color(0xFF81C784), selectedColor) { selectedColor = it }
+                    ColorOption(Color(0xFF64B5F6), selectedColor) { selectedColor = it }
+                    ColorOption(Color(0xFFFFB74D), selectedColor) { selectedColor = it }
+                    ColorOption(Color(0xFFBA68C8), selectedColor) { selectedColor = it }
                 }
 
                 Row(
@@ -95,8 +88,7 @@ fun CreateCollectionDialog(
                                 name = name,
                                 userId = userId,
                                 description = description.takeIf { it.isNotBlank() },
-                                color = selectedColor?.toArgb(),
-                                imageUrl = imageUrl
+                                color = selectedColor?.toArgb()
                             )
                             onConfirm(collection)
                         },
@@ -113,12 +105,18 @@ fun CreateCollectionDialog(
 @Composable
 private fun ColorOption(
     color: Color,
+    selectedColor: Color?,
     onSelect: (Color) -> Unit
 ) {
     Box(
         modifier = Modifier
             .size(40.dp)
             .padding(4.dp)
+            .border(
+                width = 2.dp,
+                color = if (color == selectedColor) MaterialTheme.colorScheme.primary else Color.Transparent,
+                shape = CircleShape
+            )
             .clickable { onSelect(color) }
     ) {
         Surface(
@@ -126,7 +124,7 @@ private fun ColorOption(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(2.dp),
-            shape = MaterialTheme.shapes.small
+            shape = CircleShape
         ) {}
     }
 } 
